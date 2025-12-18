@@ -8,7 +8,7 @@ spring:
     password: ""
   batch:
     job:
-      enabled: false # 通过命令行 file.requests 触发 Job，实现“一个文件一个请求”
+      enabled: false # 通过 REST 请求按需启动 Job，实现“一个文件一个请求”
     jdbc:
       initialize-schema: always
 logging:
