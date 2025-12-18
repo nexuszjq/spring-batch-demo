@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: spring-batch-demo
+  datasource:
+    url: jdbc:h2:mem:batchdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driverClassName: org.h2.Driver
+    username: sa
+    password: ""
+  batch:
+    job:
+      enabled: false # 通过命令行 file.requests 触发 Job，实现“一个文件一个请求”
+    jdbc:
+      initialize-schema: always
+logging:
+  level:
+    com.example.batchdemo: INFO
