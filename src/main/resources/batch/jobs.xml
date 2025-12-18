@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:batch="http://www.springframework.org/schema/batch"
+       xsi:schemaLocation="
+        http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/batch https://www.springframework.org/schema/batch/spring-batch.xsd">
+
+    <!-- 打开 step scope，让 ItemReader/Writer 可按请求参数创建实例 -->
+    <batch:step-scope/>
+
+    <!-- 基础处理器：去空白 + 大写转换 -->
+    <bean id="dataCleaningProcessor" class="com.example.batchdemo.job.DataCleaningProcessor"/>
+
+    <!-- mmap 版本 ItemReader，利用内存映射按 8MB 窗口流式读取 -->
+    <bean id="memoryMappedReader" class="com.example.batchdemo.io.MemoryMappedCsvReader" scope="step">
+        <constructor-arg value="#{T(java.nio.file.Path).of(jobParameters['input'])}"/>
+        <constructor-arg value="8388608"/> <!-- 8MB 窗口 -->
+    </bean>
+
+    <!-- sendfile/transferTo 版本 ItemReader，按 4MB 分片推送到管道流式读取 -->
+    <bean id="sendfileReader" class="com.example.batchdemo.io.SendfileCsvReader" scope="step">
+        <constructor-arg value="#{T(java.nio.file.Path).of(jobParameters['input'])}"/>
+        <constructor-arg value="4194304"/> <!-- 4MB 分片 -->
+    </bean>
+
+    <!-- 基于 FileChannel 的写入器，复用预分配的直接内存缓冲区 -->
+    <bean id="fileChannelLineWriter" class="com.example.batchdemo.io.FileChannelLineWriter" scope="step">
+        <constructor-arg value="#{T(java.nio.file.Path).of(jobParameters['output'])}"/>
+        <constructor-arg ref="preallocatedBufferPool"/>
+    </bean>
+
+    <batch:job id="memoryMappedJob">
+        <batch:step id="memoryMappedStep">
+            <batch:tasklet>
+                <batch:chunk reader="memoryMappedReader" processor="dataCleaningProcessor" writer="fileChannelLineWriter" commit-interval="200"/>
+            </batch:tasklet>
+        </batch:step>
+    </batch:job>
+
+    <batch:job id="sendfileJob">
+        <batch:step id="sendfileStep">
+            <batch:tasklet>
+                <batch:chunk reader="sendfileReader" processor="dataCleaningProcessor" writer="fileChannelLineWriter" commit-interval="200"/>
+            </batch:tasklet>
+        </batch:step>
+    </batch:job>
+
+</beans>
