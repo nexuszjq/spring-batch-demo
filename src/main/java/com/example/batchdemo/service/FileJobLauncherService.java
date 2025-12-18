@@ -24,12 +24,15 @@ public class FileJobLauncherService {
         this.sendfileJob = sendfileJob;
     }
 
-    public void launchMemoryMapped(String input, String output) throws Exception {
-        launchJob(memoryMappedJob, input, output);
-    }
-
-    public void launchSendfile(String input, String output) throws Exception {
-        launchJob(sendfileJob, input, output);
+    /**
+     * 根据请求选择对应的 Job 启动，实现“一个文件一个请求”。
+     */
+    public void launch(FileJobRequest request) throws Exception {
+        if (request.getMode() == FileJobRequest.Mode.MMAP) {
+            launchJob(memoryMappedJob, request.getInputPath(), request.getOutputPath());
+        } else {
+            launchJob(sendfileJob, request.getInputPath(), request.getOutputPath());
+        }
     }
 
     private void launchJob(Job job, String input, String output) throws Exception {
